@@ -7,7 +7,7 @@ def train_model(df: pd.DataFrame, target_col: str):
 
     X, y = df.drop(columns=[target_col, 'id']), df[target_col]
     # Все колонки в датасете гарантированно приведены к category и bool
-    cat_features = list(X.select_dtypes(include=['categoty', 'bool']).columns)
+    cat_features = list(X.select_dtypes(include=['category', 'bool']).columns)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y,
