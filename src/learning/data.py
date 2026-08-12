@@ -1,20 +1,26 @@
 import pandas as pd
 import sys
 import os
+import gc
 sys.path.append(os.path.abspath('..')) 
-from src.EDA.data_preprocessing import data_preprocessing
-
-category_cols = ['enc_loans_credit_type', 'enc_loans_credit_status', 'enc_loans_account_holder_type', 'enc_loans_impediment_type', 'enc_loans_subject_type'] + [f'enc_paym_{i}' for i in range(25)]
-binary_cols = ['pclose_flag', 'fclose_flag', 'is_zero_loans_credit_limit', 'is_zero_loans_next_pay_summ', 'is_zero_loans_outstanding', 'is_zero_loans_total_overdue', 'is_zero_loans_max_overdue_sum', 'is_zero_loans_credit_cost_rate', 'is_zero_loans_5', 'is_zero_loans_5_30', 'is_zero_loans_30_60', 'is_zero_loans_60_90', 'is_zero_loans_90', 'is_zero_util', 'is_zero_overdue_count', 'is_zero_max_overdue_sum']
+from src.EDA.data_preprocessing import data_preprocessing, extract_features
+from src.schema import category_cols, binary_cols
 
 def get_data():
 
+    chunks = []
+
     for n in range(0, 12):
-        df = pd.read_parquet(f'../datasets/train_data/train_data_{n}.pq')
-        df = data_preprocessing(df, category_cols=category_cols, binary_cols=binary_cols)
+        df_n = pd.read_parquet(f'../datasets/train_data/train_data_{n}.pq')
+        # Преобразовываем данные для CatBoost
+        df_n = extract_features(df=data_preprocessing(df_n, category_cols=category_cols, binary_cols=binary_cols), category_cols=category_cols, binary_cols=binary_cols)
+        chunks.append(df_n)
 
-    return None
+        # Очистка памяти из оперативки
+        del df_n
+        gc.collect()
 
+    dft = pd.read_csv('../datasets/train_target.csv')
+    df = pd.concat(chunks, axis=0, ignore_index=True).merge(right=dft, how='left', on='id')
 
-
-
+    return df
